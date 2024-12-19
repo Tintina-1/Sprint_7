@@ -19,21 +19,15 @@ public class ListOrdersTest {
         RestAssured.baseURI = BASE_URL;
     }
 
-
     @Test
     @Step("Проверка, что в теле ответа возвращается список заказов")
     public void getOrderListReturnsOrdersTest() {
         int maxRetries = 3;
 
-        given()
-                .contentType(ContentType.JSON)
-                .when()
-                .get(ORDERS_ENDPOINT)
-                .then()
-                .statusCode(200)
-                .body("orders", notNullValue())
-                .body("orders", is(not(empty())));
+        // Попытки с повтором в случае ошибки 504
+        retryRequestOn504(maxRetries);
     }
+
     @Step("Запрос списка заказов с повторением в случае 504")
     private void retryRequestOn504(int maxRetries) {
         int attempt = 0;
@@ -56,9 +50,9 @@ public class ListOrdersTest {
                 System.out.println("Список заказов успешно получен на попытке №" + attempt);
                 success = true;
             } else if (statusCode == 504) {
-                System.out.println("Получен статус 504. Повторная попытка через 2 секунды...");
+                System.out.println("Получен статус 504. Повторная попытка через " + (attempt * 2) + " секунды...");
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep((long) Math.pow(2, attempt) * 1000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
